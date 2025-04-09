@@ -1,103 +1,143 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { motion } from "framer-motion";
+
+export default function SelfCareBlob() {
+  const [xp, setXp] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [habitLog, setHabitLog] = useState({ sleep: false, water: false, movement: false });
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      return document.documentElement.classList.contains("dark");
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const classList = document.documentElement.classList;
+    if (darkMode) {
+      classList.add("dark");
+    } else {
+      classList.remove("dark");
+    }
+  }, [darkMode]);
+
+  const xpToLevelUp = level * 100;
+
+  useEffect(() => {
+    if (xp >= xpToLevelUp) {
+      setLevel((prev) => prev + 1);
+      setXp((prev) => prev - xpToLevelUp);
+    }
+  }, [xp]);
+
+  const logHabit = (habit: keyof typeof habitLog) => {
+    if (!habitLog[habit]) {
+      setHabitLog((prev) => ({ ...prev, [habit]: true }));
+      setXp((prev) => prev + 10);
+    }
+  };
+
+  const resetHabits = () => {
+    setHabitLog({ sleep: false, water: false, movement: false });
+  };
+
+  const loggedCount = Object.values(habitLog).filter(Boolean).length;
+  const blobState = loggedCount === 3 ? "healthy" : loggedCount === 0 ? "sick" : "neutral";
+
+  const blobVisuals = {
+    healthy: {
+      gradient: ["#A9F1DF", "#FFBBBB"],
+      emoji: "😊"
+    },
+    neutral: {
+      gradient: ["#E0C3FC", "#8EC5FC"],
+      emoji: "😐"
+    },
+    sick: {
+      gradient: ["#C1C1C1", "#A1A1A1"],
+      emoji: "😷"
+    }
+  };
+
+  const blob = blobVisuals[blobState];
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div>
+      <div className="min-h-screen bg-white dark:bg-zinc-900 text-black dark:text-white flex flex-col items-center justify-center p-6 transition-colors">
+        <motion.h1
+          className="text-4xl font-bold mb-6 text-center tracking-tight"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          Self-Care Companion
+        </motion.h1>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        <motion.svg
+          width="200"
+          height="200"
+          viewBox="0 0 200 200"
+          className="mb-10"
+          animate={{ scale: [1, 1.05, 1] }}
+          transition={{ repeat: Infinity, duration: 3 }}
+        >
+          <defs>
+            <radialGradient id="circleGradient" cx="50%" cy="50%" r="70%">
+              <stop offset="0%" stopColor={blob.gradient[0]} />
+              <stop offset="100%" stopColor={blob.gradient[1]} />
+            </radialGradient>
+          </defs>
+          <circle cx="100" cy="100" r="90" fill="url(#circleGradient)" />
+          <text
+            x="100"
+            y="115"
+            textAnchor="middle"
+            fontSize="40"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            {blob.emoji}
+          </text>
+        </motion.svg>
+
+        <Card className="w-full max-w-md mb-6">
+          <CardContent className="p-6">
+            <div className="flex justify-between mb-2">
+              <span className="text-lg font-semibold">Level {level}</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">XP: {xp}/{xpToLevelUp}</span>
+            </div>
+            <Progress value={(xp / xpToLevelUp) * 100} className="h-2" />
+          </CardContent>
+        </Card>
+
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 space-y-4">
+            <h2 className="text-xl font-medium mb-2">Today's Self-Care</h2>
+            <div className="flex flex-col space-y-3">
+              <Button className="w-full" variant={habitLog.sleep ? "secondary" : "default"} onClick={() => logHabit("sleep")}>Slept Well</Button>
+              <Button className="w-full" variant={habitLog.water ? "secondary" : "default"} onClick={() => logHabit("water")}>Hydrated</Button>
+              <Button className="w-full" variant={habitLog.movement ? "secondary" : "default"} onClick={() => logHabit("movement")}>Moved Body</Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="mt-6 flex flex-col items-center gap-4">
+          <Button variant="ghost" onClick={resetHabits}>Reset for Tomorrow</Button>
+
+          <div className="flex items-center space-x-3">
+            <label htmlFor="mode-toggle" className="text-sm">{darkMode ? "Dark Mode" : "Light Mode"}</label>
+            <div
+              id="mode-toggle"
+              className={`w-12 h-6 flex items-center bg-gray-300 dark:bg-gray-600 rounded-full p-1 cursor-pointer transition-colors`}
+              onClick={() => setDarkMode(prev => !prev)}
+            >
+              <div className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ${darkMode ? "translate-x-6" : "translate-x-0"}`}></div>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
     </div>
   );
 }
