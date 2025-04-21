@@ -1,0 +1,12 @@
+{
+  "xp": 40,
+  "level": 1,
+  "habitLog": {
+    "sleep": true,
+    "water": true,
+    "movement": true
+  },
+  "customHabits": {
+    "eat": true
+  }
+}
