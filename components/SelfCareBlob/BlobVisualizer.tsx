@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 interface BlobVisualizerProps {
   state: "healthy" | "neutral" | "sick";
+  animateOnHealthy?: boolean;
 }
 
 const blobVisuals = {
@@ -19,11 +20,10 @@ const blobShapes = {
   sick: "M53.6,-61.6C66.3,-44.9,72.6,-22.4,72.3,-0.6C72,21.1,65.1,42.2,52.4,58.1C39.8,74,21.4,84.6,1.6,82.7C-18.2,80.8,-36.5,66.3,-52.3,50.1C-68.1,33.9,-81.5,16,-83.1,-3.4C-84.8,-22.8,-74.7,-43.6,-58.7,-59.7C-42.7,-75.8,-21.3,-87.2,0.7,-87.7C22.8,-88.2,45.7,-77.8,53.6,-61.6Z",
 };
 
-export default function BlobVisualizer({ state }: BlobVisualizerProps) {
+export default function BlobVisualizer({ state, animateOnHealthy = false }: BlobVisualizerProps) {
   const [eyeOffset, setEyeOffset] = useState({ x: 0, y: 0 });
   const leftEyeControls = useAnimation();
   const rightEyeControls = useAnimation();
-
   const [start, end] = blobVisuals[state];
   const shape = blobShapes[state];
 
@@ -46,7 +46,7 @@ export default function BlobVisualizer({ state }: BlobVisualizerProps) {
   useEffect(() => {
     const blink = async () => {
       while (true) {
-        await new Promise((resolve) => setTimeout(resolve, Math.random() * 4000 + 3000)); // Every 3-7 seconds
+        await new Promise((resolve) => setTimeout(resolve, Math.random() * 4000 + 3000)); // every 3-7 sec
         await Promise.all([
           leftEyeControls.start({ scaleY: 0.1 }, { duration: 0.1 }),
           rightEyeControls.start({ scaleY: 0.1 }, { duration: 0.1 }),
@@ -68,8 +68,13 @@ export default function BlobVisualizer({ state }: BlobVisualizerProps) {
       xmlns="http://www.w3.org/2000/svg"
       className="block"
       initial={{ scale: 1 }}
-      animate={{ scale: [1, 1.05, 1] }}
-      transition={{ repeat: Infinity, duration: 6 }}
+      animate={{
+        scale: animateOnHealthy ? [1, 1.1, 0.95, 1] : 1,
+      }}
+      transition={{
+        duration: animateOnHealthy ? 0.8 : 6,
+        repeat: animateOnHealthy ? 0 : Infinity,
+      }}
     >
       <defs>
         <radialGradient id="gradient" cx="50%" cy="50%" r="70%">
@@ -104,30 +109,13 @@ export default function BlobVisualizer({ state }: BlobVisualizerProps) {
 
       {/* Mouth */}
       {state === "healthy" && (
-        <path
-          d="M80,120 Q100,135 120,120"
-          stroke="black"
-          strokeWidth="2"
-          fill="transparent"
-        />
+        <path d="M80,120 Q100,135 120,120" stroke="black" strokeWidth="2" fill="transparent" />
       )}
       {state === "neutral" && (
-        <line
-          x1="85"
-          y1="120"
-          x2="115"
-          y2="120"
-          stroke="black"
-          strokeWidth="2"
-        />
+        <line x1="85" y1="120" x2="115" y2="120" stroke="black" strokeWidth="2" />
       )}
       {state === "sick" && (
-        <path
-          d="M80,125 Q100,110 120,125"
-          stroke="black"
-          strokeWidth="2"
-          fill="transparent"
-        />
+        <path d="M80,125 Q100,110 120,125" stroke="black" strokeWidth="2" fill="transparent" />
       )}
     </motion.svg>
   );

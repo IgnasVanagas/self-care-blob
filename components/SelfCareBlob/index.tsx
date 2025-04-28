@@ -89,23 +89,17 @@ export default function SelfCareBlob() {
 
   const loadData = async () => {
     if (user) {
-      try {
-        const res = await fetch("/api/load");
-        if (!res.ok) return;
-        const data = await res.json();
+      const { data, error } = await supabase
+        .from("users")
+        .select("xp, level, habit_log, custom_habits")
+        .eq("id", user.id)
+        .single();
+  
+      if (data) {
         setXp(data.xp ?? 0);
         setLevel(data.level ?? 1);
-  
-        // If no habits found, initialize default habits
-        if (data.habit_log && Object.keys(data.habit_log).length > 0) {
-          setHabitLog(data.habit_log);
-        } else {
-          setHabitLog({ "Sleep Well": false, "Hydrated": false });
-        }
-  
+        setHabitLog(data.habit_log ?? { "Sleep Well": false, "Hydrated": false });
         setCustomHabits(data.custom_habits ?? {});
-      } catch (e) {
-        console.warn("Supabase load failed:", e);
       }
     } else {
       const localXp = localStorage.getItem("xp");
@@ -134,15 +128,15 @@ export default function SelfCareBlob() {
 
   const saveData = async () => {
     if (user) {
-      try {
-        await fetch("/api/save", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ xp, level, habitLog, customHabits }),
+      await supabase
+        .from("users")
+        .upsert({
+          id: user.id,
+          xp,
+          level,
+          habit_log: habitLog,
+          custom_habits: customHabits,
         });
-      } catch (e) {
-        console.warn("Supabase save failed:", e);
-      }
     } else {
       localStorage.setItem("xp", xp.toString());
       localStorage.setItem("level", level.toString());
@@ -235,7 +229,8 @@ if (loggedCount >= totalHabits && totalHabits > 0) {
     <div className="w-full flex flex-col items-center">
       <AuthIcon />
       <div className="w-full flex justify-center items-center my-8">
-  <BlobVisualizer state={blobState} />
+      <BlobVisualizer state={blobState} animateOnHealthy={blobState === "healthy"} />
+
 </div>
 
 
