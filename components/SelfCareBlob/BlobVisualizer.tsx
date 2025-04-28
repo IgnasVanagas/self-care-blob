@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
 interface BlobVisualizerProps {
   state: "healthy" | "neutral" | "sick";
@@ -19,16 +20,34 @@ const blobShapes = {
 };
 
 export default function BlobVisualizer({ state }: BlobVisualizerProps) {
+  const [eyeOffset, setEyeOffset] = useState({ x: 0, y: 0 });
+
   const [start, end] = blobVisuals[state];
   const shape = blobShapes[state];
 
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      const offsetX = (e.clientX - centerX) / 100; // smaller number = less sensitive
+      const offsetY = (e.clientY - centerY) / 100;
+      setEyeOffset({ x: offsetX, y: offsetY });
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
   return (
     <motion.svg
-      width="200"
-      height="200"
+      width="300"
+      height="300"
       viewBox="0 0 200 200"
       xmlns="http://www.w3.org/2000/svg"
       className="block"
+      initial={{ scale: 1 }}
+      animate={{ scale: [1, 1.05, 1] }}
+      transition={{ repeat: Infinity, duration: 6 }}
     >
       <defs>
         <radialGradient id="gradient" cx="50%" cy="50%" r="70%">
@@ -37,6 +56,7 @@ export default function BlobVisualizer({ state }: BlobVisualizerProps) {
         </radialGradient>
       </defs>
 
+      {/* Blob background */}
       <motion.path
         fill="url(#gradient)"
         transform="translate(100 100)"
@@ -44,19 +64,46 @@ export default function BlobVisualizer({ state }: BlobVisualizerProps) {
         transition={{ duration: 1 }}
       />
 
-      {/* Eyes */}
-      <circle cx="80" cy={state === "sick" ? 95 : 90} r="5" fill="black" />
-      <circle cx="120" cy={state === "sick" ? 95 : 90} r="5" fill="black" />
+      {/* Eyes following cursor */}
+      <motion.circle
+        cx={80 + eyeOffset.x}
+        cy={90 + eyeOffset.y}
+        r="5"
+        fill="black"
+      />
+      <motion.circle
+        cx={120 + eyeOffset.x}
+        cy={90 + eyeOffset.y}
+        r="5"
+        fill="black"
+      />
 
       {/* Mouth */}
       {state === "healthy" && (
-        <path d="M80,120 Q100,135 120,120" stroke="black" strokeWidth="2" fill="transparent" />
+        <path
+          d="M80,120 Q100,135 120,120"
+          stroke="black"
+          strokeWidth="2"
+          fill="transparent"
+        />
       )}
       {state === "neutral" && (
-        <line x1="85" y1="120" x2="115" y2="120" stroke="black" strokeWidth="2" />
+        <line
+          x1="85"
+          y1="120"
+          x2="115"
+          y2="120"
+          stroke="black"
+          strokeWidth="2"
+        />
       )}
       {state === "sick" && (
-        <path d="M80,125 Q100,110 120,125" stroke="black" strokeWidth="2" fill="transparent" />
+        <path
+          d="M80,125 Q100,110 120,125"
+          stroke="black"
+          strokeWidth="2"
+          fill="transparent"
+        />
       )}
     </motion.svg>
   );

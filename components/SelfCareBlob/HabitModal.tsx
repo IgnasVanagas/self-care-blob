@@ -20,9 +20,13 @@ export default function HabitModal({ habitName, onCancel, onConfirm }: HabitModa
           <Button variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
-          <Button variant="destructive" onClick={onConfirm}>
-            Delete
-          </Button>
+          <Button
+  className="bg-red-500 hover:bg-red-600 text-white"
+  onClick={onConfirm}
+>
+  Delete
+</Button>
+
         </div>
       </div>
     </div>

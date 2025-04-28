@@ -6,6 +6,9 @@ import { getXpNeededForLevel, getTotalCustomHabitSlots } from "@/utils/leveling"
 import AuthIcon from "@/components/ui/AuthIcon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import NoteEditor from "@/components/ui/NoteEditor";
+import LevelUpModal from "@/components/ui/LevelUpModal";
+
 
 import BlobVisualizer from "./BlobVisualizer";
 import HabitButton from "./HabitButton";
@@ -13,10 +16,12 @@ import HabitModal from "./HabitModal";
 import HabitForm from "./HabitForm";
 import ProgressCard from "./ProgressCard";
 
+
 export default function SelfCareBlob() {
   const [user, setUser] = useState<any>(undefined);
   const [xp, setXp] = useState(0);
   const [level, setLevel] = useState(1);
+  const [levelUpInfo, setLevelUpInfo] = useState<{ level: number; unlockText?: string } | null>(null);
   const [habitLog, setHabitLog] = useState({ sleep: false, water: false, movement: false });
   const [customHabits, setCustomHabits] = useState<{ [key: string]: boolean }>({});
   const [newHabit, setNewHabit] = useState("");
@@ -25,10 +30,17 @@ export default function SelfCareBlob() {
   const [confirmDeleteHabit, setConfirmDeleteHabit] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
-      return document.documentElement.classList.contains("dark");
+      const storedTheme = localStorage.getItem("darkMode");
+      if (storedTheme !== null) {
+        return storedTheme === "true"; 
+      }
+  
+      return window.matchMedia("(prefers-color-scheme: dark)").matches;
     }
     return false;
   });
+  
+  
 
   const xpToLevelUp = getXpNeededForLevel(level);
 
@@ -46,19 +58,34 @@ export default function SelfCareBlob() {
 
   useEffect(() => {
     const classList = document.documentElement.classList;
-    darkMode ? classList.add("dark") : classList.remove("dark");
+    if (darkMode) {
+      classList.add("dark");
+    } else {
+      classList.remove("dark");
+    }
+    localStorage.setItem("darkMode", darkMode.toString());
   }, [darkMode]);
+  
+  
 
   useEffect(() => {
-    let newXp = xp;
-    let newLevel = level;
-    while (newXp >= getXpNeededForLevel(newLevel) && newLevel < 25) {
-      newXp -= getXpNeededForLevel(newLevel);
-      newLevel++;
+    if (xp >= xpToLevelUp) {
+      const nextLevel = level + 1;
+      setLevel(nextLevel);
+      setXp((prev) => prev - xpToLevelUp);
+  
+      let unlockText: string | undefined;
+  
+      if (nextLevel === 5) unlockText = "✨ You can now create 2 custom habits!";
+      else if (nextLevel === 10) unlockText = "📝 Notes feature unlocked!";
+      else if (nextLevel === 15) unlockText = "🎯 You can now create 4 custom habits!";
+      else if (nextLevel === 20) unlockText = "🏆 You can now create 5 custom habits!";
+  
+      setLevelUpInfo({ level: nextLevel, unlockText });
     }
-    if (newLevel !== level) setLevel(newLevel);
-    if (newXp !== xp) setXp(newXp);
   }, [xp]);
+  
+  
 
   const loadData = async () => {
     if (user) {
@@ -258,7 +285,17 @@ export default function SelfCareBlob() {
             ></div>
           </div>
         </div>
+        {levelUpInfo && (
+  <LevelUpModal
+    level={levelUpInfo.level}
+    unlockText={levelUpInfo.unlockText}
+    onClose={() => setLevelUpInfo(null)}
+  />
+)}
+
       </div>
+      <NoteEditor user={user} level={level} />
+
 
       {confirmDeleteHabit && (
         <HabitModal
