@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useAnimation } from "framer-motion";
 import { useEffect, useState } from "react";
 
 interface BlobVisualizerProps {
@@ -21,6 +21,8 @@ const blobShapes = {
 
 export default function BlobVisualizer({ state }: BlobVisualizerProps) {
   const [eyeOffset, setEyeOffset] = useState({ x: 0, y: 0 });
+  const leftEyeControls = useAnimation();
+  const rightEyeControls = useAnimation();
 
   const [start, end] = blobVisuals[state];
   const shape = blobShapes[state];
@@ -29,14 +31,34 @@ export default function BlobVisualizer({ state }: BlobVisualizerProps) {
     const handleMouseMove = (e: MouseEvent) => {
       const centerX = window.innerWidth / 2;
       const centerY = window.innerHeight / 2;
-      const offsetX = (e.clientX - centerX) / 100; // smaller number = less sensitive
-      const offsetY = (e.clientY - centerY) / 100;
-      setEyeOffset({ x: offsetX, y: offsetY });
+      const offsetX = (e.clientX - centerX) / 50;
+      const offsetY = (e.clientY - centerY) / 70;
+      setEyeOffset({
+        x: Math.max(Math.min(offsetX, 5), -5),
+        y: Math.max(Math.min(offsetY, 5), -5),
+      });
     };
 
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
+
+  useEffect(() => {
+    const blink = async () => {
+      while (true) {
+        await new Promise((resolve) => setTimeout(resolve, Math.random() * 4000 + 3000)); // Every 3-7 seconds
+        await Promise.all([
+          leftEyeControls.start({ scaleY: 0.1 }, { duration: 0.1 }),
+          rightEyeControls.start({ scaleY: 0.1 }, { duration: 0.1 }),
+        ]);
+        await Promise.all([
+          leftEyeControls.start({ scaleY: 1 }, { duration: 0.1 }),
+          rightEyeControls.start({ scaleY: 1 }, { duration: 0.1 }),
+        ]);
+      }
+    };
+    blink();
+  }, [leftEyeControls, rightEyeControls]);
 
   return (
     <motion.svg
@@ -64,18 +86,20 @@ export default function BlobVisualizer({ state }: BlobVisualizerProps) {
         transition={{ duration: 1 }}
       />
 
-      {/* Eyes following cursor */}
+      {/* Eyes following cursor and blinking */}
       <motion.circle
         cx={80 + eyeOffset.x}
         cy={90 + eyeOffset.y}
         r="5"
         fill="black"
+        animate={leftEyeControls}
       />
       <motion.circle
         cx={120 + eyeOffset.x}
         cy={90 + eyeOffset.y}
         r="5"
         fill="black"
+        animate={rightEyeControls}
       />
 
       {/* Mouth */}

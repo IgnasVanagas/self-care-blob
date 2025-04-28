@@ -22,7 +22,7 @@ export default function SelfCareBlob() {
   const [xp, setXp] = useState(0);
   const [level, setLevel] = useState(1);
   const [levelUpInfo, setLevelUpInfo] = useState<{ level: number; unlockText?: string } | null>(null);
-  const [habitLog, setHabitLog] = useState({ sleep: false, water: false, movement: false });
+  const [habitLog, setHabitLog] = useState<{ [key: string]: boolean }>({});
   const [customHabits, setCustomHabits] = useState<{ [key: string]: boolean }>({});
   const [newHabit, setNewHabit] = useState("");
   const [editingHabit, setEditingHabit] = useState<string | null>(null);
@@ -95,24 +95,42 @@ export default function SelfCareBlob() {
         const data = await res.json();
         setXp(data.xp ?? 0);
         setLevel(data.level ?? 1);
-        setHabitLog(data.habit_log ?? {});
+  
+        // If no habits found, initialize default habits
+        if (data.habit_log && Object.keys(data.habit_log).length > 0) {
+          setHabitLog(data.habit_log);
+        } else {
+          setHabitLog({ "Sleep Well": false, "Hydrated": false });
+        }
+  
         setCustomHabits(data.custom_habits ?? {});
       } catch (e) {
         console.warn("Supabase load failed:", e);
       }
     } else {
-      const local = {
-        xp: localStorage.getItem("xp"),
-        level: localStorage.getItem("level"),
-        habitLog: localStorage.getItem("habitLog"),
-        customHabits: localStorage.getItem("customHabits"),
-      };
-      if (local.xp) setXp(parseInt(local.xp));
-      if (local.level) setLevel(parseInt(local.level));
-      if (local.habitLog) setHabitLog(JSON.parse(local.habitLog));
-      if (local.customHabits) setCustomHabits(JSON.parse(local.customHabits));
+      const localXp = localStorage.getItem("xp");
+      const localLevel = localStorage.getItem("level");
+      const localHabitLog = localStorage.getItem("habitLog");
+      const localCustomHabits = localStorage.getItem("customHabits");
+  
+      if (localXp) setXp(parseInt(localXp));
+      if (localLevel) setLevel(parseInt(localLevel));
+  
+      if (localHabitLog) {
+        const parsed = JSON.parse(localHabitLog);
+        if (Object.keys(parsed).length > 0) {
+          setHabitLog(parsed);
+        } else {
+          setHabitLog({ "Sleep Well": false, "Hydrated": false });
+        }
+      } else {
+        setHabitLog({ "Sleep Well": false, "Hydrated": false });
+      }
+  
+      if (localCustomHabits) setCustomHabits(JSON.parse(localCustomHabits));
     }
   };
+  
 
   const saveData = async () => {
     if (user) {
@@ -133,12 +151,13 @@ export default function SelfCareBlob() {
     }
   };
 
-  const logHabit = (habit: keyof typeof habitLog) => {
+  const logHabit = (habit: string) => {
     if (!habitLog[habit]) {
       setHabitLog((prev) => ({ ...prev, [habit]: true }));
       setXp((prev) => prev + 10);
     }
   };
+  
 
   const logCustomHabit = (habit: string) => {
     if (!customHabits[habit]) {
@@ -148,11 +167,20 @@ export default function SelfCareBlob() {
   };
 
   const resetHabits = () => {
-    setHabitLog({ sleep: false, water: false, movement: false });
+    const resetStandardHabits: { [key: string]: boolean } = {};
+    Object.keys(habitLog).forEach((habit) => {
+      resetStandardHabits[habit] = false;
+    });
+  
     const resetCustom: { [key: string]: boolean } = {};
-    Object.keys(customHabits).forEach((habit) => (resetCustom[habit] = false));
+    Object.keys(customHabits).forEach((habit) => {
+      resetCustom[habit] = false;
+    });
+  
+    setHabitLog(resetStandardHabits);
     setCustomHabits(resetCustom);
   };
+  
 
   const addCustomHabit = () => {
     const currentCustomCount = Object.keys(customHabits).length;
@@ -187,10 +215,21 @@ export default function SelfCareBlob() {
   };
 
   const loggedCount =
-    Object.values(habitLog).filter(Boolean).length +
-    Object.values(customHabits).filter(Boolean).length;
+  Object.values(habitLog).filter(Boolean).length +
+  Object.values(customHabits).filter(Boolean).length;
 
-  const blobState = loggedCount >= 3 ? "healthy" : loggedCount === 0 ? "sick" : "neutral";
+const totalHabits =
+  Object.keys(habitLog).length + Object.keys(customHabits).length;
+
+let blobState: "healthy" | "neutral" | "sick" = "sick";
+if (loggedCount >= totalHabits && totalHabits > 0) {
+  blobState = "healthy"; // all habits completed
+} else if (loggedCount >= 1) {
+  blobState = "neutral"; // at least one habit completed
+} else {
+  blobState = "sick"; // none completed
+}
+
 
   return (
     <div className="w-full flex flex-col items-center">
@@ -209,31 +248,25 @@ export default function SelfCareBlob() {
           <h2 className="text-lg font-semibold">Today's Self-Care</h2>
 
           <div className="flex flex-col gap-3">
-            <HabitButton
-              habit="Slept Well"
-              done={habitLog.sleep}
-              onLog={() => logHabit("sleep")}
-              onEdit={() => {}}
-              onDelete={() => {}}
-              editing={false}
-              editText=""
-              setEditText={() => {}}
-              onSaveEdit={() => {}}
-              onCancelEdit={() => {}}
-            />
+          {Object.entries(habitLog).map(([habit, done]) => (
+  <HabitButton
+    key={habit}
+    habit={habit}
+    done={done}
+    onLog={() => logHabit(habit)}
+    editing={editingHabit === habit}
+    editText={editText}
+    setEditText={setEditText}
+    onEdit={() => {
+      setEditingHabit(habit);
+      setEditText(habit);
+    }}
+    onSaveEdit={() => handleRenameHabit(habit)}
+    onCancelEdit={() => setEditingHabit(null)}
+    onDelete={() => setConfirmDeleteHabit(habit)}
+  />
+))}
 
-            <HabitButton
-              habit="Hydrated"
-              done={habitLog.water}
-              onLog={() => logHabit("water")}
-              onEdit={() => {}}
-              onDelete={() => {}}
-              editing={false}
-              editText=""
-              setEditText={() => {}}
-              onSaveEdit={() => {}}
-              onCancelEdit={() => {}}
-            />
 
             {Object.entries(customHabits).map(([habit, done]) => (
               <HabitButton
